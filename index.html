@@ -95,7 +95,7 @@
         id="arScene"
         class="hidden"
         vr-mode-ui="enabled: false"
-        arjs="sourceType: webcam; debugUIEnabled: true; detectionMode: mono_and_matrix; matrixCodeType: 3x3; trackingMethod: best; sourceWidth:640; sourceHeight:480; displayWidth: 640; displayHeight: 480; cameraParametersUrl: data/camera_para.dat;"
+        arjs="sourceType: webcam; debugUIEnabled: true; detectionMode: mono_and_matrix; matrixCodeType: 3x3; trackingMethod: best; sourceWidth:640; sourceHeight:480; displayWidth: 640; displayHeight: 480; minConfidence: 0.6; smooth: true; smoothCount: 5; smoothTolerance: 0.01; smoothThreshold: 2;"
         renderer="logarithmicDepthBuffer: true;"
         embedded
         style="height: 100vh; width: 100vw;">
@@ -109,9 +109,10 @@
             type="pattern"
             url="marker.patt"
             smooth="true"
-            smoothCount="10"
-            smoothTolerance="0.01"
-            smoothThreshold="5">
+            smoothCount="5"
+            smoothTolerance="0.02"
+            smoothThreshold="2"
+            size="1">
             
             <a-box
                 position="0 0.5 0"
@@ -163,7 +164,7 @@
             if (marker) {
                 // マーカーが検出された時
                 marker.addEventListener('markerFound', function() {
-                    console.log('マーカーが検出されました');
+                    console.log('マーカーが検出されました - Detection confidence and tracking active');
                     if (statusElement) {
                         statusElement.textContent = 'ステータス: マーカー検出 - 音声再生中';
                     }
@@ -175,7 +176,7 @@
                 
                 // マーカーが見失われた時
                 marker.addEventListener('markerLost', function() {
-                    console.log('マーカーが見失われました');
+                    console.log('マーカーが見失われました - ready for next detection');
                     if (statusElement) {
                         statusElement.textContent = 'ステータス: マーカー未検出';
                     }
@@ -212,7 +213,10 @@
             
             audioElement.currentTime = 0;
             audioElement.play().then(() => {
-                console.log('音声再生成功');
+                console.log('音声再生成功 - Audio started playing successfully');
+                if (statusElement) {
+                    statusElement.textContent = 'ステータス: マーカー検出成功！音声再生中...';
+                }
             }).catch((error) => {
                 console.error('音声再生エラー:', error);
                 isPlaying = false;
