@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ARマーカー音声再生アプリ</title>
+    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/aframe/build/aframe-ar.js"></script>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #000;
+        }
+        
+        #info {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            z-index: 1000;
+            font-size: 14px;
+            max-width: 300px;
+        }
+        
+        #status {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            z-index: 1000;
+            font-size: 14px;
+        }
+        
+        #instructions {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 1001;
+            text-align: center;
+            max-width: 400px;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        
+        button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div id="instructions">
+        <h3>ARマーカー音声再生アプリ</h3>
+        <p>このアプリはカメラを使用してマーカーを検出し、音声を再生します。</p>
+        <p>カメラアクセスを許可してください。</p>
+        <button onclick="startAR()">カメラを開始</button>
+        <button onclick="showMarkerInfo()">マーカー情報</button>
+    </div>
+    
+    <div id="info" class="hidden">
+        カメラでマーカーを認識してください
+    </div>
+    
+    <div id="status" class="hidden">
+        ステータス: 初期化中
+    </div>
+    
+    <a-scene
+        id="arScene"
+        class="hidden"
+        vr-mode-ui="enabled: false"
+        arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
+        renderer="logarithmicDepthBuffer: true;"
+        embedded
+        style="height: 100vh; width: 100vw;">
+        
+        <a-assets>
+            <audio id="audioClip" src="output_clip.mp3" preload="auto"></audio>
+        </a-assets>
+        
+        <a-marker
+            id="marker"
+            type="pattern"
+            url="marker.patt"
+            smooth="true"
+            smoothCount="10"
+            smoothTolerance="0.01"
+            smoothThreshold="5">
+            
+            <a-box
+                position="0 0.5 0"
+                material="color: #00ff00; opacity: 0.8"
+                animation="property: rotation; to: 0 360 0; loop: true; dur: 5000">
+            </a-box>
+            
+            <a-text
+                value="YU-KI マーカー検出!"
+                position="0 1.5 0"
+                align="center"
+                color="white"
+                scale="2 2 2">
+            </a-text>
+            
+            <a-cylinder
+                position="0 0 0"
+                radius="0.3"
+                height="0.1"
+                material="color: #ff0000; opacity: 0.6">
+            </a-cylinder>
+        </a-marker>
+        
+        <a-entity camera></a-entity>
+    </a-scene>
+    
+    <script>
+        let isPlaying = false;
+        let audioElement = null;
+        let marker = null;
+        let statusElement = null;
+        let infoElement = null;
+        let instructionsElement = null;
+        let arScene = null;
+        let cameraStarted = false;
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            audioElement = document.getElementById('audioClip');
+            marker = document.getElementById('marker');
+            statusElement = document.getElementById('status');
+            infoElement = document.getElementById('info');
+            instructionsElement = document.getElementById('instructions');
+            arScene = document.getElementById('arScene');
+            
+            setupEventListeners();
+        });
+        
+        function setupEventListeners() {
+            if (marker) {
+                // マーカーが検出された時
+                marker.addEventListener('markerFound', function() {
+                    console.log('マーカーが検出されました');
+                    if (statusElement) {
+                        statusElement.textContent = 'ステータス: マーカー検出 - 音声再生中';
+                    }
+                    
+                    if (!isPlaying && audioElement) {
+                        playAudio();
+                    }
+                });
+                
+                // マーカーが見失われた時
+                marker.addEventListener('markerLost', function() {
+                    console.log('マーカーが見失われました');
+                    if (statusElement) {
+                        statusElement.textContent = 'ステータス: マーカー未検出';
+                    }
+                });
+            }
+            
+            if (audioElement) {
+                // 音声再生終了時
+                audioElement.addEventListener('ended', function() {
+                    console.log('音声再生終了');
+                    isPlaying = false;
+                    if (statusElement) {
+                        statusElement.textContent = 'ステータス: 待機中';
+                    }
+                });
+                
+                // 音声再生エラー時
+                audioElement.addEventListener('error', function(e) {
+                    console.error('音声ファイルエラー:', e);
+                    isPlaying = false;
+                    if (statusElement) {
+                        statusElement.textContent = 'ステータス: 音声ファイルエラー';
+                    }
+                });
+            }
+        }
+        
+        // 音声再生関数
+        function playAudio() {
+            if (isPlaying || !audioElement) return;
+            
+            isPlaying = true;
+            console.log('音声再生開始');
+            
+            audioElement.currentTime = 0;
+            audioElement.play().then(() => {
+                console.log('音声再生成功');
+            }).catch((error) => {
+                console.error('音声再生エラー:', error);
+                isPlaying = false;
+                if (statusElement) {
+                    statusElement.textContent = 'ステータス: 音声再生エラー - ユーザー操作が必要';
+                }
+            });
+        }
+        
+        // ARカメラ開始
+        function startAR() {
+            if (cameraStarted) return;
+            
+            // カメラアクセス許可の確認
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(function(stream) {
+                    console.log('カメラアクセス許可');
+                    stream.getTracks().forEach(track => track.stop());
+                    
+                    // UI切り替え
+                    instructionsElement.classList.add('hidden');
+                    arScene.classList.remove('hidden');
+                    infoElement.classList.remove('hidden');
+                    statusElement.classList.remove('hidden');
+                    
+                    statusElement.textContent = 'ステータス: カメラ起動中...';
+                    cameraStarted = true;
+                    
+                    // AR.jsの初期化を待つ
+                    setTimeout(() => {
+                        statusElement.textContent = 'ステータス: マーカーを探しています';
+                        setupEventListeners(); // イベントリスナーを再設定
+                    }, 2000);
+                })
+                .catch(function(error) {
+                    console.error('カメラアクセスエラー:', error);
+                    alert('カメラアクセスが拒否されました。ブラウザの設定でカメラアクセスを許可してください。');
+                });
+        }
+        
+        // マーカー情報表示
+        function showMarkerInfo() {
+            alert('このアプリは提供されたYU-KI.jpgの画像をマーカーとして使用します。\n\nマーカーをカメラに向けると音声が再生されます。\n\n音声再生が終了すると、再度マーカーを認識するまで音声は再生されません。');
+        }
+        
+        // テスト用：キーボードでマーカー検出をシミュレート
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 't' || event.key === 'T') {
+                console.log('テスト: マーカー検出シミュレート');
+                if (!isPlaying && audioElement) {
+                    playAudio();
+                }
+            }
+        });
+    </script>
+</body>
+</html>
