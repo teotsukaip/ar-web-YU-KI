@@ -6,6 +6,7 @@
     <title>ARマーカー音声再生アプリ</title>
     <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/aframe/build/aframe-ar.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/three.js/build/ar.js"></script>
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"></meta>
     <style>
@@ -94,7 +95,7 @@
         id="arScene"
         class="hidden"
         vr-mode-ui="enabled: false"
-        arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3; trackingMethod: best; sourceWidth:1280; sourceHeight:960; displayWidth: 1280; displayHeight: 960;"
+        arjs="sourceType: webcam; debugUIEnabled: true; detectionMode: mono_and_matrix; matrixCodeType: 3x3; trackingMethod: best; sourceWidth:640; sourceHeight:480; displayWidth: 640; displayHeight: 480; cameraParametersUrl: data/camera_para.dat;"
         renderer="logarithmicDepthBuffer: true;"
         embedded
         style="height: 100vh; width: 100vw;">
@@ -232,8 +233,9 @@
             const constraints = {
                 video: {
                     facingMode: 'environment', // 背面カメラを優先
-                    width: { ideal: 1280 },
-                    height: { ideal: 960 }
+                    width: { ideal: 640, max: 640 },
+                    height: { ideal: 480, max: 480 },
+                    frameRate: { ideal: 30, max: 30 }
                 }
             };
             
@@ -252,7 +254,7 @@
                     cameraStarted = true;
                     
                     // モバイルの場合は少し長めに待つ
-                    const waitTime = isMobile ? 3000 : 2000;
+                    const waitTime = isMobile ? 5000 : 2000;
                     setTimeout(() => {
                         statusElement.textContent = 'ステータス: マーカーを探しています';
                         setupEventListeners(); // イベントリスナーを再設定
@@ -260,9 +262,30 @@
                         // AR.jsが正しく初期化されているかチェック
                         if (typeof AFRAME !== 'undefined' && AFRAME.scenes && AFRAME.scenes.length > 0) {
                             console.log('AR.js初期化完了');
+                            
+                            // カメラストリームの強制リフレッシュ（iOS対応）
+                            const scene = document.querySelector('a-scene');
+                            if (scene && scene.systems && scene.systems.arjs) {
+                                console.log('AR.jsシステム検出');
+                                // iOS Chromeでカメラストリームを強制的に開始
+                                setTimeout(() => {
+                                    const video = document.querySelector('video');
+                                    if (video) {
+                                        video.play().catch(e => console.log('Video play error:', e));
+                                        console.log('ビデオ要素を強制再生');
+                                    }
+                                }, 1000);
+                            }
                         } else {
                             console.warn('AR.js初期化に問題がある可能性があります');
                             statusElement.textContent = 'ステータス: 初期化中... しばらくお待ちください';
+                            
+                            // 再試行メカニズム
+                            setTimeout(() => {
+                                if (statusElement.textContent.includes('初期化中')) {
+                                    statusElement.textContent = 'ステータス: 初期化に時間がかかっています。ページを再読み込みしてください。';
+                                }
+                            }, 5000);
                         }
                     }, waitTime);
                 })
