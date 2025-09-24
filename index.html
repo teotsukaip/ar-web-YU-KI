@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ARマーカー音声再生アプリ</title>
-    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/aframe/build/aframe-ar.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/three.js/build/ar.js"></script>
+    <title>MindAR マーカー音声再生アプリ</title>
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"></meta>
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <style>
         body {
             margin: 0;
@@ -76,15 +75,15 @@
 </head>
 <body>
     <div id="instructions">
-        <h3>ARマーカー音声再生アプリ</h3>
-        <p>このアプリはカメラを使用してマーカーを検出し、音声を再生します。</p>
+        <h3>MindAR マーカー音声再生アプリ</h3>
+        <p>このアプリはカメラを使用してYU-KI画像マーカーを検出し、音声を再生します。</p>
         <p>カメラアクセスを許可してください。</p>
         <button onclick="startAR()">カメラを開始</button>
         <button onclick="showMarkerInfo()">マーカー情報</button>
     </div>
     
     <div id="info" class="hidden">
-        カメラでマーカーを認識してください
+        カメラでYU-KI画像マーカーを認識してください
     </div>
     
     <div id="status" class="hidden">
@@ -94,79 +93,67 @@
     <a-scene
         id="arScene"
         class="hidden"
+        mindar-image="imageTargetSrc: ./YU-KI.mind; autoStart: false; uiLoading: no; uiScanning: no; uiError: no;"
+        color-space="sRGB"
+        renderer="colorManagement: true, physicallyCorrectLights"
         vr-mode-ui="enabled: false"
-        arjs="sourceType: webcam; debugUIEnabled: true; detectionMode: mono_and_matrix; matrixCodeType: 3x3; trackingMethod: best; sourceWidth:640; sourceHeight:480; displayWidth: 640; displayHeight: 480; minConfidence: 0.3; smooth: true; smoothCount: 3; smoothTolerance: 0.05; smoothThreshold: 1; maxDetectionRate: 60; canvasWidth: 640; canvasHeight: 480;"
-        renderer="logarithmicDepthBuffer: true;"
-        embedded
-        style="height: 100vh; width: 100vw;">
+        device-orientation-permission-ui="enabled: false">
         
         <a-assets>
             <audio id="audioClip" src="output_clip.mp3" preload="auto"></audio>
         </a-assets>
         
-        <a-marker
-            id="marker"
-            type="pattern"
-            url="qr-marker.patt"
-            smooth="true"
-            smoothCount="3"
-            smoothTolerance="0.05"
-            smoothThreshold="1"
-            size="1"
-            preset="custom"
-            patternRatio="0.8">
-            
+        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+        
+        <a-entity mindar-image-target="targetIndex: 0">
             <a-box
-                position="0 0.5 0"
+                position="0 0 0"
                 material="color: #00ff00; opacity: 0.8"
                 animation="property: rotation; to: 0 360 0; loop: true; dur: 5000">
             </a-box>
             
             <a-text
                 value="YU-KI マーカー検出!"
-                position="0 1.5 0"
+                position="0 0.5 0"
                 align="center"
                 color="white"
                 scale="2 2 2">
             </a-text>
             
             <a-cylinder
-                position="0 0 0"
+                position="0 -0.5 0"
                 radius="0.3"
                 height="0.1"
                 material="color: #ff0000; opacity: 0.6">
             </a-cylinder>
-        </a-marker>
-        
-        <a-entity camera></a-entity>
+        </a-entity>
     </a-scene>
     
     <script>
         let isPlaying = false;
         let audioElement = null;
-        let marker = null;
         let statusElement = null;
         let infoElement = null;
         let instructionsElement = null;
         let arScene = null;
         let cameraStarted = false;
+        let markerTarget = null;
         
         document.addEventListener('DOMContentLoaded', function() {
             audioElement = document.getElementById('audioClip');
-            marker = document.getElementById('marker');
             statusElement = document.getElementById('status');
             infoElement = document.getElementById('info');
             instructionsElement = document.getElementById('instructions');
             arScene = document.getElementById('arScene');
+            markerTarget = document.querySelector('a-entity[mindar-image-target]');
             
             setupEventListeners();
         });
         
         function setupEventListeners() {
-            if (marker) {
-                // マーカーが検出された時
-                marker.addEventListener('markerFound', function() {
-                    console.log('マーカーが検出されました - Detection confidence and tracking active');
+            if (markerTarget) {
+                markerTarget.addEventListener('targetFound', function() {
+                    console.log('YU-KI画像マーカーが検出されました');
                     if (statusElement) {
                         statusElement.textContent = 'ステータス: マーカー検出 - 音声再生中';
                     }
@@ -176,9 +163,8 @@
                     }
                 });
                 
-                // マーカーが見失われた時
-                marker.addEventListener('markerLost', function() {
-                    console.log('マーカーが見失われました - ready for next detection');
+                markerTarget.addEventListener('targetLost', function() {
+                    console.log('YU-KI画像マーカーが見失われました');
                     if (statusElement) {
                         statusElement.textContent = 'ステータス: マーカー未検出';
                     }
@@ -186,7 +172,6 @@
             }
             
             if (audioElement) {
-                // 音声再生終了時
                 audioElement.addEventListener('ended', function() {
                     console.log('音声再生終了');
                     isPlaying = false;
@@ -195,7 +180,6 @@
                     }
                 });
                 
-                // 音声再生エラー時
                 audioElement.addEventListener('error', function(e) {
                     console.error('音声ファイルエラー:', e);
                     isPlaying = false;
@@ -204,9 +188,22 @@
                     }
                 });
             }
+            
+            arScene.addEventListener('arReady', function() {
+                console.log('MindAR初期化完了');
+                if (statusElement) {
+                    statusElement.textContent = 'ステータス: YU-KI画像マーカーを画面中央に配置してください';
+                }
+            });
+            
+            arScene.addEventListener('arError', function(event) {
+                console.error('MindARエラー:', event.detail.error);
+                if (statusElement) {
+                    statusElement.textContent = 'ステータス: ARエラー - ' + event.detail.error;
+                }
+            });
         }
         
-        // 音声再生関数
         function playAudio() {
             if (isPlaying || !audioElement) return;
             
@@ -215,9 +212,9 @@
             
             audioElement.currentTime = 0;
             audioElement.play().then(() => {
-                console.log('音声再生成功 - Audio started playing successfully');
+                console.log('音声再生成功');
                 if (statusElement) {
-                    statusElement.textContent = 'ステータス: マーカー検出成功！音声再生中...';
+                    statusElement.textContent = 'ステータス: YU-KI画像マーカー検出成功！音声再生中...';
                 }
             }).catch((error) => {
                 console.error('音声再生エラー:', error);
@@ -228,102 +225,25 @@
             });
         }
         
-        // ARカメラ開始
         function startAR() {
             if (cameraStarted) return;
             
-            // モバイルデバイスの検出
-            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            instructionsElement.classList.add('hidden');
+            arScene.classList.remove('hidden');
+            infoElement.classList.remove('hidden');
+            statusElement.classList.remove('hidden');
             
-            // カメラアクセス許可の確認（モバイル対応）
-            const constraints = {
-                video: {
-                    facingMode: 'environment', // 背面カメラを優先
-                    width: { ideal: 640, max: 640 },
-                    height: { ideal: 480, max: 480 },
-                    frameRate: { ideal: 30, max: 30 }
-                }
-            };
+            statusElement.textContent = 'ステータス: MindAR初期化中...';
+            cameraStarted = true;
             
-            navigator.mediaDevices.getUserMedia(constraints)
-                .then(function(stream) {
-                    console.log('カメラアクセス許可');
-                    stream.getTracks().forEach(track => track.stop());
-                    
-                    // UI切り替え
-                    instructionsElement.classList.add('hidden');
-                    arScene.classList.remove('hidden');
-                    infoElement.classList.remove('hidden');
-                    statusElement.classList.remove('hidden');
-                    
-                    statusElement.textContent = 'ステータス: カメラ起動中...';
-                    cameraStarted = true;
-                    
-                    // モバイルの場合は少し長めに待つ
-                    const waitTime = isMobile ? 5000 : 2000;
-                    setTimeout(() => {
-                        statusElement.textContent = 'ステータス: マーカーを探しています';
-                        setupEventListeners(); // イベントリスナーを再設定
-                        
-                        // AR.jsが正しく初期化されているかチェック
-                        if (typeof AFRAME !== 'undefined' && AFRAME.scenes && AFRAME.scenes.length > 0) {
-                            console.log('AR.js初期化完了 - QRコードマーカー検出モード有効');
-                            statusElement.textContent = 'ステータス: QRコードマーカー検出モード - QRコードを画面中央に配置してください';
-                            
-                            // カメラストリームの強制リフレッシュ（iOS対応）
-                            const scene = document.querySelector('a-scene');
-                            if (scene && scene.systems && scene.systems.arjs) {
-                                console.log('AR.jsシステム検出 - QRコード最適化済み');
-                                // iOS Chromeでカメラストリームを強制的に開始
-                                setTimeout(() => {
-                                    const video = document.querySelector('video');
-                                    if (video) {
-                                        video.play().catch(e => console.log('Video play error:', e));
-                                        console.log('ビデオ要素を強制再生');
-                                    }
-                                }, 1000);
-                                
-                                // 検出率向上のための追加設定
-                                setTimeout(() => {
-                                    console.log('QRコード検出パラメータ最適化完了 - minConfidence: 0.3, QRコード専用モード');
-                                }, 2000);
-                            }
-                        } else {
-                            console.warn('AR.js初期化に問題がある可能性があります');
-                            statusElement.textContent = 'ステータス: 初期化中... しばらくお待ちください';
-                            
-                            // 再試行メカニズム
-                            setTimeout(() => {
-                                if (statusElement.textContent.includes('初期化中')) {
-                                    statusElement.textContent = 'ステータス: 初期化に時間がかかっています。ページを再読み込みしてください。';
-                                }
-                            }, 5000);
-                        }
-                    }, waitTime);
-                })
-                .catch(function(error) {
-                    console.error('カメラアクセスエラー:', error);
-                    let errorMessage = 'カメラアクセスが拒否されました。';
-                    
-                    if (error.name === 'NotAllowedError') {
-                        errorMessage += '\n\nブラウザの設定でカメラアクセスを許可してください。';
-                    } else if (error.name === 'NotFoundError') {
-                        errorMessage += '\n\nカメラが見つかりません。デバイスにカメラが接続されているか確認してください。';
-                    } else if (error.name === 'NotSupportedError') {
-                        errorMessage += '\n\nHTTPS接続が必要です。セキュアな接続でアクセスしてください。';
-                    }
-                    
-                    alert(errorMessage);
-                    statusElement.textContent = 'ステータス: カメラエラー';
-                });
+            const mindARSystem = arScene.systems['mindar-image-system'];
+            mindARSystem.start();
         }
         
-        // マーカー情報表示
         function showMarkerInfo() {
-            alert('このアプリは提供されたQRコードをマーカーとして使用します。\n\nQRコードマーカーをカメラに向けると音声が再生されます。\n\n音声再生が終了すると、再度マーカーを認識するまで音声は再生されません。\n\n【検出のコツ】\n・QRコードを画面中央に配置\n・適度な距離を保つ（20-40cm）\n・照明を明るくする\n・QRコードを平らに保つ\n・QRコード全体がカメラに映るようにする');
+            alert('このアプリはYU-KI.jpg画像をマーカーとして使用します。\n\nYU-KI画像マーカーをカメラに向けると音声が再生されます。\n\n音声再生が終了すると、再度マーカーを認識するまで音声は再生されません。\n\n【YU-KI画像マーカー検出のコツ】\n・画像を画面中央に配置\n・適度な距離（20-40cm）を保つ\n・十分な照明を確保\n・画像を平らに保つ\n・画像全体がカメラに映るようにする\n・白い背景の上に画像を置く\n・ゆっくりと動かして角度を調整');
         }
         
-        // テスト用：キーボードでマーカー検出をシミュレート
         document.addEventListener('keydown', function(event) {
             if (event.key === 't' || event.key === 'T') {
                 console.log('テスト: マーカー検出シミュレート');
