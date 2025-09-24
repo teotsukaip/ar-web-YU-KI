@@ -108,24 +108,10 @@
         <a-entity mindar-image-target="targetIndex: 0">
             <a-box
                 position="0 0 0"
-                material="color: #00ff00; opacity: 0.8"
-                animation="property: rotation; to: 0 360 0; loop: true; dur: 5000">
+                material="color: #00ff00; opacity: 0.0"
+                scale="0.01 0.01 0.01"
+                visible="false">
             </a-box>
-            
-            <a-text
-                value="YU-KI マーカー検出!"
-                position="0 0.5 0"
-                align="center"
-                color="white"
-                scale="2 2 2">
-            </a-text>
-            
-            <a-cylinder
-                position="0 -0.5 0"
-                radius="0.3"
-                height="0.1"
-                material="color: #ff0000; opacity: 0.6">
-            </a-cylinder>
         </a-entity>
     </a-scene>
     
@@ -210,23 +196,93 @@
             isPlaying = true;
             console.log('音声再生開始');
             
+            // Reset audio to beginning
             audioElement.currentTime = 0;
-            audioElement.play().then(() => {
-                console.log('音声再生成功');
-                if (statusElement) {
-                    statusElement.textContent = 'ステータス: YU-KI画像マーカー検出成功！音声再生中...';
+            
+            // Ensure audio is loaded
+            if (audioElement.readyState < 2) {
+                audioElement.load();
+            }
+            
+            // Try to play audio
+            const playPromise = audioElement.play();
+            
+            if (playPromise !== undefined) {
+                playPromise.then(() => {
+                    console.log('音声再生成功');
+                    if (statusElement) {
+                        statusElement.textContent = 'ステータス: YU-KI画像マーカー検出成功！音声再生中...';
+                    }
+                }).catch((error) => {
+                    console.error('音声再生エラー:', error);
+                    isPlaying = false;
+                    if (statusElement) {
+                        statusElement.textContent = 'ステータス: 音声再生エラー - ' + error.message;
+                    }
+                    
+                    // Try alternative approach - create new audio element
+                    tryAlternativeAudioPlay();
+                });
+            }
+        }
+        
+        function tryAlternativeAudioPlay() {
+            try {
+                // Create new audio element as fallback
+                const newAudio = new Audio('output_clip.mp3');
+                newAudio.preload = 'auto';
+                newAudio.volume = 1.0;
+                
+                newAudio.addEventListener('ended', function() {
+                    console.log('代替音声再生終了');
+                    isPlaying = false;
+                    if (statusElement) {
+                        statusElement.textContent = 'ステータス: 待機中';
+                    }
+                });
+                
+                newAudio.addEventListener('error', function(e) {
+                    console.error('代替音声再生エラー:', e);
+                    isPlaying = false;
+                    if (statusElement) {
+                        statusElement.textContent = 'ステータス: 音声ファイルが見つかりません';
+                    }
+                });
+                
+                const playPromise = newAudio.play();
+                if (playPromise !== undefined) {
+                    playPromise.then(() => {
+                        console.log('代替音声再生成功');
+                        if (statusElement) {
+                            statusElement.textContent = 'ステータス: 音声再生中（代替方式）';
+                        }
+                    }).catch((error) => {
+                        console.error('代替音声再生失敗:', error);
+                        isPlaying = false;
+                        if (statusElement) {
+                            statusElement.textContent = 'ステータス: 音声再生不可 - ブラウザ制限';
+                        }
+                    });
                 }
-            }).catch((error) => {
-                console.error('音声再生エラー:', error);
+            } catch (error) {
+                console.error('代替音声作成エラー:', error);
                 isPlaying = false;
                 if (statusElement) {
-                    statusElement.textContent = 'ステータス: 音声再生エラー - ユーザー操作が必要';
+                    statusElement.textContent = 'ステータス: 音声システムエラー';
                 }
-            });
+            }
         }
         
         function startAR() {
             if (cameraStarted) return;
+            
+            // Enable audio playback by user interaction
+            if (audioElement) {
+                audioElement.muted = false;
+                audioElement.volume = 1.0;
+                // Try to load the audio file
+                audioElement.load();
+            }
             
             instructionsElement.classList.add('hidden');
             arScene.classList.remove('hidden');
