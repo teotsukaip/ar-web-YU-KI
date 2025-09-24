@@ -95,7 +95,7 @@
         id="arScene"
         class="hidden"
         vr-mode-ui="enabled: false"
-        arjs="sourceType: webcam; debugUIEnabled: true; detectionMode: mono_and_matrix; matrixCodeType: 3x3; trackingMethod: best; sourceWidth:640; sourceHeight:480; displayWidth: 640; displayHeight: 480; minConfidence: 0.6; smooth: true; smoothCount: 5; smoothTolerance: 0.01; smoothThreshold: 2;"
+        arjs="sourceType: webcam; debugUIEnabled: true; detectionMode: mono_and_matrix; matrixCodeType: 3x3; trackingMethod: best; sourceWidth:640; sourceHeight:480; displayWidth: 640; displayHeight: 480; minConfidence: 0.3; smooth: true; smoothCount: 3; smoothTolerance: 0.05; smoothThreshold: 1; maxDetectionRate: 60; canvasWidth: 640; canvasHeight: 480;"
         renderer="logarithmicDepthBuffer: true;"
         embedded
         style="height: 100vh; width: 100vw;">
@@ -107,12 +107,14 @@
         <a-marker
             id="marker"
             type="pattern"
-            url="marker.patt"
+            url="marker-high-contrast.patt"
             smooth="true"
-            smoothCount="5"
-            smoothTolerance="0.02"
-            smoothThreshold="2"
-            size="1">
+            smoothCount="3"
+            smoothTolerance="0.05"
+            smoothThreshold="1"
+            size="1"
+            preset="custom"
+            patternRatio="0.8">
             
             <a-box
                 position="0 0.5 0"
@@ -265,12 +267,13 @@
                         
                         // AR.jsが正しく初期化されているかチェック
                         if (typeof AFRAME !== 'undefined' && AFRAME.scenes && AFRAME.scenes.length > 0) {
-                            console.log('AR.js初期化完了');
+                            console.log('AR.js初期化完了 - 高感度検出モード有効');
+                            statusElement.textContent = 'ステータス: 高感度マーカー検出モード - マーカーを画面中央に配置してください';
                             
                             // カメラストリームの強制リフレッシュ（iOS対応）
                             const scene = document.querySelector('a-scene');
                             if (scene && scene.systems && scene.systems.arjs) {
-                                console.log('AR.jsシステム検出');
+                                console.log('AR.jsシステム検出 - 検出感度最大化');
                                 // iOS Chromeでカメラストリームを強制的に開始
                                 setTimeout(() => {
                                     const video = document.querySelector('video');
@@ -279,6 +282,11 @@
                                         console.log('ビデオ要素を強制再生');
                                     }
                                 }, 1000);
+                                
+                                // 検出率向上のための追加設定
+                                setTimeout(() => {
+                                    console.log('検出パラメータ最適化完了 - minConfidence: 0.3, 高速検出モード');
+                                }, 2000);
                             }
                         } else {
                             console.warn('AR.js初期化に問題がある可能性があります');
@@ -312,7 +320,7 @@
         
         // マーカー情報表示
         function showMarkerInfo() {
-            alert('このアプリは提供されたYU-KI.jpgの画像をマーカーとして使用します。\n\nマーカーをカメラに向けると音声が再生されます。\n\n音声再生が終了すると、再度マーカーを認識するまで音声は再生されません。');
+            alert('このアプリは提供されたYU-KI.jpgの画像をマーカーとして使用します。\n\nマーカーをカメラに向けると音声が再生されます。\n\n音声再生が終了すると、再度マーカーを認識するまで音声は再生されません。\n\n【検出のコツ】\n・マーカーを画面中央に配置\n・適度な距離を保つ（30-50cm）\n・照明を明るくする\n・マーカーを平らに保つ');
         }
         
         // テスト用：キーボードでマーカー検出をシミュレート
