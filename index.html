@@ -107,7 +107,7 @@
         <a-marker
             id="marker"
             type="pattern"
-            url="marker-high-contrast.patt"
+            url="qr-marker.patt"
             smooth="true"
             smoothCount="3"
             smoothTolerance="0.05"
@@ -267,13 +267,13 @@
                         
                         // AR.jsが正しく初期化されているかチェック
                         if (typeof AFRAME !== 'undefined' && AFRAME.scenes && AFRAME.scenes.length > 0) {
-                            console.log('AR.js初期化完了 - 高感度検出モード有効');
-                            statusElement.textContent = 'ステータス: 高感度マーカー検出モード - マーカーを画面中央に配置してください';
+                            console.log('AR.js初期化完了 - QRコードマーカー検出モード有効');
+                            statusElement.textContent = 'ステータス: QRコードマーカー検出モード - QRコードを画面中央に配置してください';
                             
                             // カメラストリームの強制リフレッシュ（iOS対応）
                             const scene = document.querySelector('a-scene');
                             if (scene && scene.systems && scene.systems.arjs) {
-                                console.log('AR.jsシステム検出 - 検出感度最大化');
+                                console.log('AR.jsシステム検出 - QRコード最適化済み');
                                 // iOS Chromeでカメラストリームを強制的に開始
                                 setTimeout(() => {
                                     const video = document.querySelector('video');
@@ -285,7 +285,7 @@
                                 
                                 // 検出率向上のための追加設定
                                 setTimeout(() => {
-                                    console.log('検出パラメータ最適化完了 - minConfidence: 0.3, 高速検出モード');
+                                    console.log('QRコード検出パラメータ最適化完了 - minConfidence: 0.3, QRコード専用モード');
                                 }, 2000);
                             }
                         } else {
@@ -320,7 +320,7 @@
         
         // マーカー情報表示
         function showMarkerInfo() {
-            alert('このアプリは提供されたYU-KI.jpgの画像をマーカーとして使用します。\n\nマーカーをカメラに向けると音声が再生されます。\n\n音声再生が終了すると、再度マーカーを認識するまで音声は再生されません。\n\n【検出のコツ】\n・マーカーを画面中央に配置\n・適度な距離を保つ（30-50cm）\n・照明を明るくする\n・マーカーを平らに保つ');
+            alert('このアプリは提供されたQRコードをマーカーとして使用します。\n\nQRコードマーカーをカメラに向けると音声が再生されます。\n\n音声再生が終了すると、再度マーカーを認識するまで音声は再生されません。\n\n【検出のコツ】\n・QRコードを画面中央に配置\n・適度な距離を保つ（20-40cm）\n・照明を明るくする\n・QRコードを平らに保つ\n・QRコード全体がカメラに映るようにする');
         }
         
         // テスト用：キーボードでマーカー検出をシミュレート
